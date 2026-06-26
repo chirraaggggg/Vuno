@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { convertModelMessages, generateProjectTitle } from "@/app/action/action";
 import { getAuthServer } from "@/lib/supabase-server";
 import { createUIMessageStream, createUIMessageStreamResponse, generateId, UIMessage, generateText, streamText } from "ai";
-import { google, anthropic } from "@/lib/ai-client";
+import { google } from "@/lib/ai-client";
 import { SLEEK_CHAT_PROMPT, SLEEK_INTENT_PROMPT, WEB_ANALYSIS_PROMPT, WEB_GENERATION_PROMPT } from "@/lib/prompt";
 
 class AbortError extends Error {
@@ -67,7 +67,6 @@ async function runGenerationWorker({
     throw new Error("No pages generated");
   }
 
-  // emit to the chat
   emit(writer, "generation", {
     status: "generating",
     pages: pages.map((page: any) => ({
@@ -77,7 +76,6 @@ async function runGenerationWorker({
     }))
   }, { id: "gen-card" })
 
-  // emit pages
   emit(writer, "pages-skeleton", {
     pages: pages.map((page: any) => ({
       id: page.id,
@@ -106,7 +104,6 @@ async function runGenerationWorker({
         done: generationPages.some((gp: any) => gp.name === page.name)
       }))
     }, { id: "gen-card" })
-
 
     const previousPagesContext = generationPages.length > 0
       ? generationPages.slice(-2).map((p) => `<!--${p.name}-->\n${p.htmlContent}`).join('\n\n')
@@ -221,7 +218,6 @@ Write 1-2 sentences in first person. Natural, confident. No questions. No "let m
         role: 'user',
         content: `Designed: ${pages.map((p: any) => p.name).join(', ')} for: "${latestUserMessage}". Summarize briefly.`
       }
-
     ]
   })
 
@@ -259,7 +255,6 @@ Write 1-2 sentences in first person. Natural, confident. No questions. No "let m
       ]
     }
   ])
-
 }
 
 async function runRegenerateWorker({
@@ -355,7 +350,6 @@ async function runRegenerateWorker({
     }
   }, { id: "gen-card" })
 
-
   const summaryResult = await streamText({
     model: google('gemini-2.5-flash-lite'),
     messages: [
@@ -368,7 +362,6 @@ Write 1-2 sentences in first person. Natural, confident. No questions. No "let m
         role: 'user',
         content: `Updated: ${updatedPage.name} for: "${latestUserMessage}". Summarize briefly.`
       }
-
     ]
   })
 
@@ -406,8 +399,6 @@ Write 1-2 sentences in first person. Natural, confident. No questions. No "let m
       ]
     }
   ])
-
-
 }
 
 
@@ -492,7 +483,6 @@ export async function POST(request: NextRequest) {
 
     const checkAbort = () => {
       if (signal.aborted) throw new AbortError()
-
     }
 
     const uiStream = createUIMessageStream({
@@ -500,22 +490,16 @@ export async function POST(request: NextRequest) {
       async execute({ writer }) {
         let genCardEmitted = false;
         try {
-
           if (project?.title) {
             emit(writer, "project-title", {
               title: project.title
-            }, { id: "proj-title", transient: true, })
-            // writer.write({
-            //   type: "data-project-title",
-            //   data: {
-            //     title: project.title
-            //   },
-            //   transient: true,
-            // })
+            }, { id: "proj-title", transient: true })
 
             checkAbort();
+
+            // Intent classification — swapped from Claude to Gemini 2.5 Flash
             const result = await generateText({
-              model: anthropic('claude-sonnet-4-5'),
+              model: google('gemini-2.5-flash'),
               messages: [
                 {
                   role: "system",
@@ -529,7 +513,6 @@ export async function POST(request: NextRequest) {
             })
 
             const classify_output = (result.text).trim().toLowerCase();
-
             const firstWord = classify_output.split(' ')[0];
             const validIntents = ["chat", "generate", "regenerate"];
             const intent = validIntents.includes(firstWord) ?
@@ -537,7 +520,6 @@ export async function POST(request: NextRequest) {
 
             const classification = { intent }
 
-            // CLASSIFICATION MATCHES CHAT
             if (classification.intent === "chat") {
               const chatResult = await streamText({
                 model: google("gemini-2.5-pro"),
@@ -587,16 +569,13 @@ export async function POST(request: NextRequest) {
             emit(writer, "generation", {
               status: "analyzing",
               page: []
-            },
-              {
-                id: "gen-card"
-              }
-            )
+            }, { id: "gen-card" })
 
             genCardEmitted = true
 
+            // Web analysis — swapped from Claude to Gemini 2.5 Pro
             const analysisResult = await generateText({
-              model: anthropic('claude-sonnet-4-5'),
+              model: google('gemini-2.5-pro'),
               maxOutputTokens: 28000,
               messages: [
                 {
@@ -625,7 +604,6 @@ export async function POST(request: NextRequest) {
                           : ''}
         USER REQUEST: "${latestUserMessage}"OUTPUT RAW JSON ONLY.`.trim()
                     }
-
                   ]
                 }
               ]
@@ -679,13 +657,12 @@ export async function POST(request: NextRequest) {
               emit(writer, "generation", { status: "canceled" }, {
                 id: "gen-card"
               })
-              writer.write({ type: "abort", })
+              writer.write({ type: "abort" })
             }
             return
           }
 
           emit(writer, 'generation', { status: 'error' }, { id: 'gen-card' });
-
           writer.write({ type: "error", errorText: "Something went wrong" })
         }
       }
