@@ -1,49 +1,68 @@
+import { Download, MessageSquare, Wand2 } from "lucide-react";
+
 const steps = [
   {
-    n: "01",
-    title: "Describe it",
-    body: "Tell Sleek AI what you're building and who it's for, in a sentence or two.",
+    icon: MessageSquare,
+    title: "Describe your idea",
+    body: "Enter a simple text prompt describing the website you want to build.",
   },
   {
-    n: "02",
-    title: "Review the draft",
-    body: "Get a full first pass — layout, type, color, and imagery — in under a minute.",
+    icon: Wand2,
+    title: "AI generates your site",
+    body: "Our AI instantly creates a professional, high-fidelity page tailored to your description.",
   },
   {
-    n: "03",
-    title: "Refine on canvas",
-    body: "Click into any section to adjust it. Sleek AI regenerates around your edits.",
-  },
-  {
-    n: "04",
-    title: "Export",
-    body: "Take the code, hand it to your favorite AI coding tool, or send it to Figma.",
+    icon: Download,
+    title: "Export code & ship",
+    body: "Get production-ready code to drop directly into your project.",
   },
 ];
 
 export default function HowItWorks() {
   return (
     <section className="bg-white px-6 py-24 md:px-12">
-      <div className="mx-auto max-w-5xl">
-        <span className="text-sm font-medium text-blue-600">Workflow</span>
-        <h2 className="mt-3 font-serif text-4xl text-slate-900 md:text-5xl">
-          Four steps, start to ship.
-        </h2>
+      <div className="mx-auto max-w-6xl">
+        <div className="relative overflow-hidden rounded-[2rem] bg-white px-6 py-16 sm:px-10 lg:px-16">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 opacity-60"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, rgba(156, 163, 175, 0.35) 1px, transparent 1px)",
+              backgroundSize: "18px 18px",
+              backgroundPosition: "0 0",
+            }}
+          />
+          <div className="relative z-10 mx-auto max-w-3xl text-center">
+            <h2 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+              Three steps. That is all.
+            </h2>
+            <p className="mt-4 text-base text-gray-600 sm:text-lg">
+              Turn your prompt into a production-ready website in seconds.
+            </p>
+          </div>
+        </div>
 
-        <div className="mt-14 grid gap-6 md:grid-cols-2">
-          {steps.map((step) => (
-            <div key={step.n} className="rounded-2xl border border-slate-200 p-6">
-              <span className="font-serif text-sm font-medium tracking-[0.2em] text-blue-600">
-                {step.n}
-              </span>
-              <h3 className="mt-3 font-serif text-xl text-slate-900">
-                {step.title}
-              </h3>
-              <p className="mt-2 text-[15px] font-light leading-relaxed text-slate-600">
-                {step.body}
-              </p>
-            </div>
-          ))}
+        <div className="mt-8 grid overflow-hidden rounded-[2rem] md:grid-cols-3 md:divide-x md:divide-gray-200">
+          {steps.map((step) => {
+            const Icon = step.icon;
+
+            return (
+              <div key={step.title} className="bg-white px-6 py-12 sm:px-10 lg:px-12 lg:py-16">
+                <div className="flex flex-col items-start text-left">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gray-100 text-slate-900">
+                    <Icon className="h-6 w-6" strokeWidth={1.8} />
+                  </div>
+                  <h3 className="mt-6 text-xl font-semibold tracking-tight text-slate-900">
+                    {step.title}
+                  </h3>
+                  <p className="mt-3 max-w-sm text-base leading-7 text-gray-600">
+                    {step.body}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
