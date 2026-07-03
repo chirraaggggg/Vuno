@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import { GeistSans } from 'geist/font/sans';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,19 +7,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SupabaseProvider } from "@/components/auth";
 import { QueryProvider } from "@/components/query-provider";
-
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-
-const fraunces = Fraunces({
-  variable: "--font-serif",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
-});
 
 export const metadata: Metadata = {
   title: "Vuno — Design websites with AI",
@@ -32,10 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.variable} ${fraunces.variable} bg-white text-slate-900 antialiased`}
-      >
+    <html lang="en" className={GeistSans.className} suppressHydrationWarning>
+      <body className="bg-white text-slate-900 antialiased">
         <SupabaseProvider>
           <QueryProvider>
             <NuqsAdapter>
@@ -55,7 +40,6 @@ export default function RootLayout({
             </NuqsAdapter>
           </QueryProvider>
         </SupabaseProvider>
-
       </body>
     </html>
   );
