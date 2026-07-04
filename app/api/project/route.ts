@@ -4,6 +4,7 @@ import { getAuthServer } from "@/lib/supabase-server";
 import { createUIMessageStream, createUIMessageStreamResponse, generateId, UIMessage, generateText, streamText } from "ai";
 import { google } from "@/lib/ai-client";
 import { VUNO_CHAT_PROMPT, VUNO_INTENT_PROMPT, WEB_ANALYSIS_PROMPT, WEB_GENERATION_PROMPT } from "@/lib/prompt";
+import { createClient } from "@supabase/supabase-js";
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,7 @@ const emit = (
 
 async function runGenerationWorker({
   supabase,
+  supabaseAdmin,
   writer,
   projectId,
   analysis,
@@ -159,16 +161,25 @@ ${page.rootStyles}
     htmlContent = match ? match[0] : htmlContent;
     htmlContent = htmlContent.replace(/```/g, "")
 
-    const { data: savedPage, error } = await supabase.from("pages").insert([
-      {
-        projectId,
-        name: page.name,
-        rootStyles: page.rootStyles,
-        htmlContent
-      }
-    ]).select().single();
+    let savedPage: any = { id: generateId(), name: page.name, rootStyles: page.rootStyles, htmlContent };
+    try {
+      const { data, error } = await supabaseAdmin.from("pages").insert([
+        {
+          projectId,
+          name: page.name,
+          rootStyles: page.rootStyles,
+          htmlContent
+        }
+      ]).select().single();
 
-    if (error) console.log(error, "Page failed to save")
+      if (error) {
+        console.error("Supabase insert error (runGenerationWorker pages):", error);
+      } else if (data) {
+        savedPage = data;
+      }
+    } catch (err) {
+      console.error("Exception during Supabase insert (runGenerationWorker pages):", err);
+    }
 
     generationPages.push({
       name: page.name,
@@ -234,31 +245,39 @@ Write 1-2 sentences in first person. Natural, confident. No questions. No "let m
   writer.write({ type: "text-end", id: summaryId });
 
   checkAbort()
-  await supabase.from("messages").insert([
-    {
-      projectId,
-      role: "assistant",
-      parts: [
-        {
-          type: "data-generation",
-          id: "gen-card",
-          data: {
-            status: "complete",
-            pages: pages.map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              done: true
-            }))
-          }
-        },
-        { type: "text", text: fullSummaryText }
-      ]
+  try {
+    const { error } = await supabaseAdmin.from("messages").insert([
+      {
+        projectId,
+        role: "assistant",
+        parts: [
+          {
+            type: "data-generation",
+            id: "gen-card",
+            data: {
+              status: "complete",
+              pages: pages.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                done: true
+              }))
+            }
+          },
+          { type: "text", text: fullSummaryText }
+        ]
+      }
+    ]);
+    if (error) {
+      console.error("Supabase insert error (runGenerationWorker messages):", error);
     }
-  ])
+  } catch (err) {
+    console.error("Exception during Supabase insert (runGenerationWorker messages):", err);
+  }
 }
 
 async function runRegenerateWorker({
   supabase,
+  supabaseAdmin,
   writer,
   projectId,
   selectedPage,
@@ -320,11 +339,20 @@ async function runRegenerateWorker({
   htmlContent = match ? match[0] : htmlContent;
   htmlContent = htmlContent.replace(/```/g, '');
 
-  const { data: updatedPage, error } = await supabase.from("pages")
-    .update({ htmlContent, rootStyles: analysis.rootStyles })
-    .eq("id", selectedPage.id).select().single()
+  let updatedPage: any = { id: selectedPage.id, name: selectedPage.name, rootStyles: analysis.rootStyles, htmlContent };
+  try {
+    const { data, error } = await supabaseAdmin.from("pages")
+      .update({ htmlContent, rootStyles: analysis.rootStyles })
+      .eq("id", selectedPage.id).select().single()
 
-  if (error) console.log(error, "Failed to update selected Page")
+    if (error) {
+      console.error("Supabase update error (runRegenerateWorker pages):", error);
+    } else if (data) {
+      updatedPage = data;
+    }
+  } catch (err) {
+    console.error("Exception during Supabase update (runRegenerateWorker pages):", err);
+  }
 
   emit(writer, "page-created", {
     page: {
@@ -373,27 +401,34 @@ Write 1-2 sentences in first person. Natural, confident. No questions. No "let m
   writer.write({ type: "text-end", id: summaryId });
 
   checkAbort()
-  await supabase.from("messages").insert([
-    {
-      projectId,
-      role: "assistant",
-      parts: [
-        {
-          type: "data-generation",
-          id: "gen-card",
-          data: {
-            status: "complete",
-            regeneratePage: {
-              id: updatedPage.id,
-              name: updatedPage.name,
-              done: true
+  try {
+    const { error } = await supabaseAdmin.from("messages").insert([
+      {
+        projectId,
+        role: "assistant",
+        parts: [
+          {
+            type: "data-generation",
+            id: "gen-card",
+            data: {
+              status: "complete",
+              regeneratePage: {
+                id: updatedPage.id,
+                name: updatedPage.name,
+                done: true
+              }
             }
-          }
-        },
-        { type: "text", text: fullSummaryText }
-      ]
+          },
+          { type: "text", text: fullSummaryText }
+        ]
+      }
+    ]);
+    if (error) {
+      console.error("Supabase insert error (runRegenerateWorker messages):", error);
     }
-  ])
+  } catch (err) {
+    console.error("Exception during Supabase insert (runRegenerateWorker messages):", err);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -406,7 +441,17 @@ export async function POST(request: NextRequest) {
     }
 
     const { user, supabase } = await getAuthServer()
+    
+    console.log('Auth check starting...')
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+    console.log('User:', authUser?.id, 'Auth error:', authError)
+
     if (!user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     let { data: project, error: projectError } = await supabase
       .from("projects")
@@ -421,15 +466,23 @@ export async function POST(request: NextRequest) {
         part.type === "text"
       )?.text as string
       const title = await generateProjectTitle(messageText);
-      const { data: newProject, error } = await supabase
-        .from("projects")
-        .insert([{ slugId, title, userId: user.id }])
-        .select()
-        .single()
+      try {
+        const { data: newProject, error } = await supabaseAdmin
+          .from("projects")
+          .insert([{ slugId, title, userId: user.id }])
+          .select()
+          .single()
 
-      if (error) throw error;
-      if (!newProject) throw new Error("Failed to create project");
-      project = newProject
+        if (error) {
+          console.error("Supabase insert error (POST project):", error);
+          throw error;
+        }
+        if (!newProject) throw new Error("Failed to create project");
+        project = newProject
+      } catch (err) {
+        console.error("Exception during Supabase insert (POST project):", err);
+        throw err;
+      }
     }
 
     const projectId = project!.id;
@@ -443,11 +496,16 @@ export async function POST(request: NextRequest) {
     const hasExistingPages = existingPages && existingPages.length
 
     const lastMessage = messages[messages.length - 1];
-    await supabase.from("messages").insert([{
-      projectId,
-      role: "user",
-      parts: lastMessage.parts
-    }])
+    try {
+      const { error: msgError } = await supabaseAdmin.from("messages").insert([{
+        projectId,
+        role: "user",
+        parts: lastMessage.parts
+      }]);
+      if (msgError) console.error("Supabase insert error (POST messages - user):", msgError);
+    } catch (err) {
+      console.error("Exception during Supabase insert (POST messages - user):", err);
+    }
 
     const modelMessages = await convertModelMessages(messages.slice(10))
     const latestUserMessage = (lastMessage.parts?.find((p: any) => p.type === 'text') as any)?.text;
@@ -515,11 +573,16 @@ export async function POST(request: NextRequest) {
               writer.write({ type: "text-end", id: chatId })
               checkAbort();
 
-              await supabase.from("messages").insert([{
-                projectId,
-                role: "assistant",
-                parts: [{ type: "text", text: chatText }]
-              }])
+              try {
+                const { error: chatMsgError } = await supabaseAdmin.from("messages").insert([{
+                  projectId,
+                  role: "assistant",
+                  parts: [{ type: "text", text: chatText }]
+                }]);
+                if (chatMsgError) console.error("Supabase insert error (POST messages - chat):", chatMsgError);
+              } catch (err) {
+                console.error("Exception during Supabase insert (POST messages - chat):", err);
+              }
 
               return;
             }
@@ -582,7 +645,7 @@ export async function POST(request: NextRequest) {
             if (isRegen && selectedPageId) {
               checkAbort();
               await runRegenerateWorker({
-                supabase, writer, projectId, selectedPage,
+                supabase, supabaseAdmin, writer, projectId, selectedPage,
                 latestUserMessage, analysis, checkAbort,
               })
               return
@@ -590,7 +653,7 @@ export async function POST(request: NextRequest) {
 
             checkAbort();
             await runGenerationWorker({
-              supabase, writer, projectId, analysis,
+              supabase, supabaseAdmin, writer, projectId, analysis,
               existingPages, latestUserMessage, checkAbort,
             });
           }
