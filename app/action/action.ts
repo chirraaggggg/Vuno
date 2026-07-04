@@ -7,7 +7,7 @@ import { google } from "@/lib/ai-client"
 export const generateProjectTitle = async (message: string) => {
   try {
     const result = await generateText({
-      model: google("gemini-2.5-flash-lite"),
+      model: google("gemini-2.0-flash"),
       messages: [
         {
           role: "system",

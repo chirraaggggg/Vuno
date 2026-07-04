@@ -111,7 +111,7 @@ async function runGenerationWorker({
       ? generationPages.slice(-2).map((p) => `<!--${p.name}-->\n${p.htmlContent}`).join('\n\n')
       : "No previous pages";
 
-    const result = await generateText({
+    const generateOptions: any = {
       model: google('gemini-2.0-flash'),
       maxTokens: 1500,
       messages: [
@@ -154,7 +154,20 @@ ${page.rootStyles}
         Generate the complete, production-ready HTML for "${page.name}" now:`.trim(),
         }
       ]
-    })
+    };
+
+    let result;
+    try {
+      result = await generateText(generateOptions);
+    } catch (error: any) {
+      if (error?.message?.includes('quota') || error?.message?.includes('429')) {
+        console.log('Rate limit hit, waiting 10s...');
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        result = await generateText(generateOptions);
+      } else {
+        throw error;
+      }
+    }
 
     let htmlContent = result.text ?? ""
     const match = htmlContent.match(/<div[\s\S]*<\/div>/);
@@ -218,7 +231,7 @@ ${page.rootStyles}
   }, { id: "gen-card" })
 
   const summaryResult = await streamText({
-    model: google('gemini-2.0-flash-lite'),
+    model: google('gemini-2.0-flash'),
     messages: [
       {
         role: "system",
@@ -311,7 +324,7 @@ async function runRegenerateWorker({
     }
   }, { id: "gen-card" })
 
-  const result = await generateText({
+  const generateOptions: any = {
     model: google("gemini-2.0-flash"),
     maxTokens: 1500,
     messages: [
@@ -332,7 +345,20 @@ async function runRegenerateWorker({
                 Return the full page HTML with only the requested change. Start with <div.`.trim()
       }
     ]
-  });
+  };
+
+  let result;
+  try {
+    result = await generateText(generateOptions);
+  } catch (error: any) {
+    if (error?.message?.includes('quota') || error?.message?.includes('429')) {
+      console.log('Rate limit hit, waiting 10s...');
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      result = await generateText(generateOptions);
+    } else {
+      throw error;
+    }
+  }
 
   let htmlContent = result.text ?? '';
   const match = htmlContent.match(/<div[\s\S]*<\/div>/);
@@ -374,7 +400,7 @@ async function runRegenerateWorker({
   }, { id: "gen-card" })
 
   const summaryResult = await streamText({
-    model: google('gemini-2.0-flash-lite'),
+    model: google('gemini-2.0-flash'),
     messages: [
       {
         role: "system",
@@ -534,14 +560,30 @@ export async function POST(request: NextRequest) {
 
             checkAbort();
 
-            // Intent classification
-            const result = await generateText({
-              model: google('gemini-2.0-flash'),
-              messages: [
-                { role: "system", content: VUNO_INTENT_PROMPT },
-                { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
-              ]
-            })
+            let result;
+            try {
+              result = await generateText({
+                model: google('gemini-2.0-flash'),
+                messages: [
+                  { role: "system", content: VUNO_INTENT_PROMPT },
+                  { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
+                ]
+              });
+            } catch (error: any) {
+              if (error?.message?.includes('quota') || error?.message?.includes('429')) {
+                console.log('Rate limit hit, waiting 10s...');
+                await new Promise(resolve => setTimeout(resolve, 10000));
+                result = await generateText({
+                  model: google('gemini-2.0-flash'),
+                  messages: [
+                    { role: "system", content: VUNO_INTENT_PROMPT },
+                    { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
+                  ]
+                });
+              } else {
+                throw error;
+              }
+            }
 
             const classify_output = (result.text).trim().toLowerCase();
             const firstWord = classify_output.split(' ')[0];
@@ -593,8 +635,7 @@ export async function POST(request: NextRequest) {
             emit(writer, "generation", { status: "analyzing", page: [] }, { id: "gen-card" })
             genCardEmitted = true
 
-            // Web analysis
-            const analysisResult = await generateText({
+            const analysisOptions: any = {
               model: google("gemini-2.0-flash"),
               maxTokens: 1500,
               messages: [
@@ -624,7 +665,20 @@ export async function POST(request: NextRequest) {
                   ]
                 }
               ]
-            });
+            };
+
+            let analysisResult;
+            try {
+              analysisResult = await generateText(analysisOptions);
+            } catch (error: any) {
+              if (error?.message?.includes('quota') || error?.message?.includes('429')) {
+                console.log('Rate limit hit, waiting 10s...');
+                await new Promise(resolve => setTimeout(resolve, 10000));
+                analysisResult = await generateText(analysisOptions);
+              } else {
+                throw error;
+              }
+            }
 
             checkAbort();
 
