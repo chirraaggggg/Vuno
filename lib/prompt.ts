@@ -175,6 +175,8 @@ Rules:
 - Never return rootStyles or visualDescription at top level.
 - Start with { and end with }.
 - Output valid JSON only.
+
+IMPORTANT: Generate exactly 1 page only. Keep the response concise and under 300 words.
 `.trim();
 
 
@@ -464,4 +466,6 @@ Design principle: Charts should feel like Linear, Vercel, or Raycast — minimal
 - Never use JavaScript or canvas.
 - Never hallucinate images (use ONLY pravatar or picsum).
 - Never add unnecessary wrapper divs.
+
+IMPORTANT: Keep the HTML concise. Maximum 150 lines of HTML. No unnecessary comments.
 `.trim();

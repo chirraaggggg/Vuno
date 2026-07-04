@@ -112,8 +112,8 @@ async function runGenerationWorker({
       : "No previous pages";
 
     const result = await generateText({
-      model: google('gemini-2.5-flash'),
-      maxOutputTokens: 30000,
+      model: google('gemini-2.0-flash'),
+      maxTokens: 1500,
       messages: [
         {
           role: "system",
@@ -218,7 +218,7 @@ ${page.rootStyles}
   }, { id: "gen-card" })
 
   const summaryResult = await streamText({
-    model: google('gemini-2.5-flash-lite'),
+    model: google('gemini-2.0-flash-lite'),
     messages: [
       {
         role: "system",
@@ -312,8 +312,8 @@ async function runRegenerateWorker({
   }, { id: "gen-card" })
 
   const result = await generateText({
-    model: google("gemini-2.5-flash"),
-    maxOutputTokens: 28000,
+    model: google("gemini-2.0-flash"),
+    maxTokens: 1500,
     messages: [
       {
         role: "system",
@@ -374,7 +374,7 @@ async function runRegenerateWorker({
   }, { id: "gen-card" })
 
   const summaryResult = await streamText({
-    model: google('gemini-2.5-flash-lite'),
+    model: google('gemini-2.0-flash-lite'),
     messages: [
       {
         role: "system",
@@ -536,7 +536,7 @@ export async function POST(request: NextRequest) {
 
             // Intent classification
             const result = await generateText({
-              model: google('gemini-2.5-flash'),
+              model: google('gemini-2.0-flash'),
               messages: [
                 { role: "system", content: VUNO_INTENT_PROMPT },
                 { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
@@ -552,7 +552,7 @@ export async function POST(request: NextRequest) {
             // Chat handler
             if (classification.intent === "chat") {
               const chatResult = await streamText({
-                model: google("gemini-2.5-flash"),
+                model: google("gemini-2.0-flash"),
                 messages: [
                   { role: "system", content: VUNO_CHAT_PROMPT },
                   ...modelMessages
@@ -595,8 +595,8 @@ export async function POST(request: NextRequest) {
 
             // Web analysis
             const analysisResult = await generateText({
-              model: google("gemini-2.5-flash"),
-              maxOutputTokens: 28000,
+              model: google("gemini-2.0-flash"),
+              maxTokens: 1500,
               messages: [
                 { role: "system", content: WEB_ANALYSIS_PROMPT },
                 {
