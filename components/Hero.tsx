@@ -13,11 +13,14 @@ export default function Hero() {
   const [user, setUser] = useState<any>(null);
 
   const examplePrompts = [
-    "A portfolio for a photographer",
-    "SaaS landing page for a finance app",
-    "Restaurant website with menu",
-    "Personal blog for a developer",
-    "Agency site for a design studio",
+    "A minimal portfolio for a UI/UX designer with case studies, about section, and contact form",
+    "SaaS landing page for an AI writing tool with pricing, features, testimonials and waitlist signup",
+    "Modern restaurant website with hero, menu sections, reservation form and location map",
+    "Personal blog for a software developer with dark theme, article list and newsletter signup",
+    "E-commerce landing page for a luxury skincare brand with product showcase and reviews",
+    "Agency website for a creative studio with work portfolio, team section and contact page",
+    "Startup landing page for a fintech app with app screenshots, features and download buttons",
+    "Wedding photographer portfolio with full-screen gallery, packages and booking form",
   ];
 
   useEffect(() => {
@@ -29,14 +32,14 @@ export default function Hero() {
   }, [])
 
   const handleGenerate = async () => {
-    if (!prompt) return;
+    if (!prompt.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      router.push(`/login?prompt=${encodeURIComponent(prompt)}`);
-    } else {
-      const slugId = generateSlugId();
-      router.push(`/project/${slugId}?prompt=${encodeURIComponent(prompt)}`);
+      router.push(`/login?prompt=${encodeURIComponent(prompt.trim())}`);
+      return;
     }
+    const slugId = generateSlugId();
+    router.push(`/project/${slugId}?prompt=${encodeURIComponent(prompt.trim())}`);
   };
 
   return (
@@ -106,6 +109,7 @@ export default function Hero() {
             <input
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleGenerate() }}
               placeholder="A clean portfolio for a product designer…"
               className="flex-1 border-none bg-transparent py-3 text-sm text-gray-700 outline-none placeholder:text-gray-400"
             />

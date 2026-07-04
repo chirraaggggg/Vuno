@@ -18,16 +18,19 @@ import { useCanvas } from "@/hooks/use-canvas";
 type PropsType = {
   isProjectPage?: boolean;
   slugId?: string;
+  initialPrompt?: string;
 }
 
 const ChatInterface = ({
   isProjectPage = false,
-  slugId: propSlugId
+  slugId: propSlugId,
+  initialPrompt: propInitialPrompt
 }: PropsType) => {
   const pathname = usePathname();
   const router = useRouter()
   const searchParams = useSearchParams();
-  const initialPrompt = searchParams.get("prompt");
+  // Use prop if passed (from server page), fall back to URL param
+  const initialPrompt = propInitialPrompt || searchParams.get("prompt") || '';
 
   const [slugId, setSlugId] = useState(() => propSlugId
     || generateSlugId())
@@ -217,15 +220,18 @@ const ChatInterface = ({
     setInput("")
   }
 
+  const hasAutoSubmitted = useRef(false);
+
   useEffect(() => {
-    if (!isProjectLoading && initialPrompt && messages.length === 0 && !hasStarted) {
-      const timer = setTimeout(() => {
-        onSubmit({ text: initialPrompt, files: [] });
-        router.replace(pathname);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isProjectLoading, initialPrompt, messages.length, hasStarted, onSubmit, router, pathname]);
+    if (!initialPrompt || initialPrompt.trim() === '') return;
+    if (isProjectLoading) return;
+    if (hasAutoSubmitted.current) return;
+    hasAutoSubmitted.current = true;
+    const timer = setTimeout(() => {
+      onSubmit({ text: initialPrompt.trim(), files: [] });
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [isProjectLoading, initialPrompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBack = () => {
     if (!isProjectPage) {
