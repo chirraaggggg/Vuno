@@ -5,6 +5,9 @@ import { createUIMessageStream, createUIMessageStreamResponse, generateId, UIMes
 import { google } from "@/lib/ai-client";
 import { VUNO_CHAT_PROMPT, VUNO_INTENT_PROMPT, WEB_ANALYSIS_PROMPT, WEB_GENERATION_PROMPT } from "@/lib/prompt";
 
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 class AbortError extends Error {
   constructor() {
     super('Request aborted');
