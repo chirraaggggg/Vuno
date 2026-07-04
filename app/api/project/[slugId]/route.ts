@@ -17,9 +17,13 @@ export async function GET(req: NextRequest,
       .eq("slugId", slugId)
       .single()
 
-    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 })
-
-    if (error) throw new Error("Project failed fetch");
+    if (!project || error) {
+      return NextResponse.json({
+        title: 'Untitled Project',
+        messages: [],
+        pages: []
+      }, { status: 200 })
+    }
 
     const { data: messages } = await supabase.from("messages")
       .select("*")
