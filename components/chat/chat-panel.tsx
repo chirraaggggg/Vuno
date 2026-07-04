@@ -57,7 +57,7 @@ const ChatPanel = ({
               (part) => part.type === "file"
             )
             return (
-              <>
+              <React.Fragment key={message.id}>
                 <Message from={message.role} key={message.id}>
                   <MessageContent className="text-[14.5px]">
                     {attachmentsFromMessage.length > 0 && (
@@ -108,7 +108,7 @@ const ChatPanel = ({
                     })}
                   </MessageContent>
                 </Message>
-              </>
+              </React.Fragment>
             )
           })}
 

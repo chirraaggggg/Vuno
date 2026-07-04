@@ -1,7 +1,7 @@
 "use client"
 import { useChat } from "@ai-sdk/react"
 import { generateSlugId } from "@/lib/utils";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { DefaultChatTransport, UIMessage } from "ai";
 import { toast } from "sonner";
@@ -26,6 +26,8 @@ const ChatInterface = ({
 }: PropsType) => {
   const pathname = usePathname();
   const router = useRouter()
+  const searchParams = useSearchParams();
+  const initialPrompt = searchParams.get("prompt");
 
   const [slugId, setSlugId] = useState(() => propSlugId
     || generateSlugId())
@@ -40,7 +42,19 @@ const ChatInterface = ({
     queryKey: ["project", slugId],
     queryFn: async () => {
       const res = await fetch(`/api/project/${slugId}`);
-      if (!res.ok) throw new Error("Failed to fetch project");
+      if (res.status === 401) {
+        router.push(`/login?prompt=${encodeURIComponent(initialPrompt ?? '')}`)
+        return null as any;
+      }
+      if (res.status === 404) {
+        return { title: 'Untitled Project', messages: [], pages: [] }
+      }
+      
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('API Error:', res.status, errorText)
+        return null as any;
+      }
       return res.json() as Promise<{ title: string; messages: UIMessage[]; pages: PageType[] }>
     },
   enabled: isProjectPage, // Only fetch on project page
@@ -202,6 +216,16 @@ const ChatInterface = ({
 
     setInput("")
   }
+
+  useEffect(() => {
+    if (!isProjectLoading && initialPrompt && messages.length === 0 && !hasStarted) {
+      const timer = setTimeout(() => {
+        onSubmit({ text: initialPrompt, files: [] });
+        router.replace(pathname);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isProjectLoading, initialPrompt, messages.length, hasStarted, onSubmit, router, pathname]);
 
   const handleBack = () => {
     if (!isProjectPage) {

@@ -1,10 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { generateSlugId } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export default function Hero() {
   const [prompt, setPrompt] = useState("");
+  const router = useRouter();
+  const supabase = createClient();
+  const [user, setUser] = useState<any>(null);
+
+  const examplePrompts = [
+    "A portfolio for a photographer",
+    "SaaS landing page for a finance app",
+    "Restaurant website with menu",
+    "Personal blog for a developer",
+    "Agency site for a design studio",
+  ];
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleGenerate = async () => {
+    if (!prompt) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push(`/login?prompt=${encodeURIComponent(prompt)}`);
+    } else {
+      const slugId = generateSlugId();
+      router.push(`/project/${slugId}?prompt=${encodeURIComponent(prompt)}`);
+    }
+  };
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-black">
@@ -32,9 +65,6 @@ export default function Hero() {
             <a href="#features" className="text-sm font-medium text-white/70 transition-colors duration-200 hover:text-white">
               Features
             </a>
-            <a href="#examples" className="text-sm font-medium text-white/70 transition-colors duration-200 hover:text-white">
-              Examples
-            </a>
             <a href="#pricing" className="text-sm font-medium text-white/70 transition-colors duration-200 hover:text-white">
               Pricing
             </a>
@@ -44,12 +74,19 @@ export default function Hero() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium text-white/70 transition-colors hover:text-white">
-              Log in
-            </Link>
-            <Link href="/signup" className="rounded-full bg-white px-5 py-2.5 text-sm font-medium text-gray-900 shadow-sm transition-colors hover:bg-white/90">
-              Sign up
-            </Link>
+            {user ? (
+              <button
+                onClick={async () => { await supabase.auth.signOut(); window.location.href = '/' }}
+                className="text-sm text-white/80 hover:text-white transition-colors"
+              >
+                Log out
+              </button>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm text-white/80 hover:text-white transition-colors">Log in</Link>
+                <Link href="/signup" className="text-sm bg-white text-gray-900 px-5 py-2.5 rounded-full hover:bg-white/90 transition-colors font-medium">Sign up</Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -72,10 +109,22 @@ export default function Hero() {
               placeholder="A clean portfolio for a product designer…"
               className="flex-1 border-none bg-transparent py-3 text-sm text-gray-700 outline-none placeholder:text-gray-400"
             />
-            <button className="flex-shrink-0 rounded-xl bg-gray-900 px-5 py-2.5 text-sm text-white transition-colors hover:bg-gray-700">
+            <button onClick={handleGenerate} className="flex-shrink-0 rounded-xl bg-gray-900 px-5 py-2.5 text-sm text-white transition-colors hover:bg-gray-700">
               Generate →
             </button>
           </div>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-xl mx-auto">
+          {examplePrompts.map((examplePrompt, idx) => (
+            <button
+              key={idx}
+              onClick={() => setPrompt(examplePrompt)}
+              className="text-xs text-white/60 border border-white/20 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/20 hover:text-white/90 transition-all"
+            >
+              {examplePrompt}
+            </button>
+          ))}
         </div>
 
         <p className="mt-4 text-xs text-white/40">No credit card needed · 5 free generations</p>

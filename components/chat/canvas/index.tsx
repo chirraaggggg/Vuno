@@ -54,8 +54,13 @@ const Canvas = ({ isProjectLoading, pages, setPages, slugId }: PropsType) => {
 
   return (
     <>
-      <div className="relative w-full h-full
+      <div className="relative w-full h-full flex flex-col
      overflow-hidden">
+        {pages.length === 0 && !isProjectLoading ? (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <p className="text-gray-400 text-sm">Your site will appear here</p>
+          </div>
+        ) : (
         <TransformWrapper
           initialScale={0.26}
           initialPositionX={40}
@@ -175,6 +180,7 @@ const Canvas = ({ isProjectLoading, pages, setPages, slugId }: PropsType) => {
             </>
           )}
         </TransformWrapper>
+        )}
       </div>
     </>
   )

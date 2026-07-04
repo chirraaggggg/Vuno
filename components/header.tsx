@@ -1,19 +1,37 @@
 "use client"
-
+import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Logo } from "./logo"
-import { Button } from "./ui/button"
 import { DarkModeToggle } from "./dark-mode-toggle"
-import { SignedIn, SignedOut, useAuth, UserButton } from "@/components/auth"
-import { Spinner } from "./ui/spinner"
 
 const Header = () => {
   const pathname = usePathname()
-  const { isLoaded } = useAuth();
-
   const isProjectPage = pathname.startsWith('/project/')
+
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+      setLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
 
   return (
     <header className="w-full">
@@ -30,26 +48,18 @@ const Header = () => {
         <div className="flex items-center justify-end gap-3">
           <DarkModeToggle />
 
-          {!isLoaded ? <Spinner className="w-8 h-8" /> : (
-            <>
-              <SignedOut>
-                <Button variant="outline" asChild>
-                  <Link href="/login">Log in</Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/signup">Sign up</Link>
-                </Button>
-              </SignedOut>
-
-              <SignedIn>
-                <UserButton
-                  mode="simple"
-                  afterSignOutUrl="/"
-                  showProfile
-                />
-              </SignedIn>
-
-            </>
+          {loading ? null : user ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-500 hidden md:block">{user.email}</span>
+              <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                Log out
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link href="/login" className="text-sm text-gray-500 hover:text-gray-900">Log in</Link>
+              <Link href="/signup" className="text-sm bg-gray-900 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-colors">Sign up</Link>
+            </div>
           )}
         </div>
       </div>
