@@ -9,8 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.84",
-    "@ai-sdk/groq": "^4.0.0",
+    "@ai-sdk/groq": "^3.0.47",
     "@ai-sdk/react": "^3.0.89",
     "@streamdown/cjk": "^1.0.2",
     "@streamdown/code": "^1.0.3",

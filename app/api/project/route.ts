@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { convertModelMessages, generateProjectTitle } from "@/app/action/action";
 import { getAuthServer } from "@/lib/supabase-server";
 import { createUIMessageStream, createUIMessageStreamResponse, generateId, UIMessage, generateText, streamText } from "ai";
-import { google } from "@/lib/ai-client";
+import { groq } from "@/lib/ai-client";
 import { VUNO_CHAT_PROMPT, VUNO_INTENT_PROMPT, WEB_ANALYSIS_PROMPT, WEB_GENERATION_PROMPT } from "@/lib/prompt";
 import { createClient } from "@supabase/supabase-js";
 
@@ -112,7 +112,7 @@ async function runGenerationWorker({
       : "No previous pages";
 
     const generateOptions: any = {
-      model: google('gemini-2.0-flash'),
+      model: groq('llama-3.3-70b-versatile'),
       maxTokens: 1500,
       messages: [
         {
@@ -231,7 +231,7 @@ ${page.rootStyles}
   }, { id: "gen-card" })
 
   const summaryResult = await streamText({
-    model: google('gemini-2.0-flash'),
+    model: groq('llama-3.3-70b-versatile'),
     messages: [
       {
         role: "system",
@@ -325,7 +325,7 @@ async function runRegenerateWorker({
   }, { id: "gen-card" })
 
   const generateOptions: any = {
-    model: google("gemini-2.0-flash"),
+    model: groq('llama-3.3-70b-versatile'),
     maxTokens: 1500,
     messages: [
       {
@@ -400,7 +400,7 @@ async function runRegenerateWorker({
   }, { id: "gen-card" })
 
   const summaryResult = await streamText({
-    model: google('gemini-2.0-flash'),
+    model: groq('llama-3.3-70b-versatile'),
     messages: [
       {
         role: "system",
@@ -563,7 +563,7 @@ export async function POST(request: NextRequest) {
             let result;
             try {
               result = await generateText({
-                model: google('gemini-2.0-flash'),
+                model: groq('llama-3.3-70b-versatile'),
                 messages: [
                   { role: "system", content: VUNO_INTENT_PROMPT },
                   { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
@@ -574,27 +574,30 @@ export async function POST(request: NextRequest) {
                 console.log('Rate limit hit, waiting 10s...');
                 await new Promise(resolve => setTimeout(resolve, 10000));
                 result = await generateText({
-                  model: google('gemini-2.0-flash'),
+                  model: groq('llama-3.3-70b-versatile'),
                   messages: [
                     { role: "system", content: VUNO_INTENT_PROMPT },
                     { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
                   ]
                 });
+              } else if (error?.message?.includes('model output must contain') || error?.message?.includes('empty')) {
+                // Groq returned empty — default to generate
+                result = { text: 'generate' } as any;
               } else {
                 throw error;
               }
             }
 
-            const classify_output = (result.text).trim().toLowerCase();
+            const classify_output = ((result?.text) || 'generate').trim().toLowerCase();
             const firstWord = classify_output.split(' ')[0];
             const validIntents = ["chat", "generate", "regenerate"];
-            const intent = validIntents.includes(firstWord) ? firstWord as any : 'chat'
+            const intent = validIntents.includes(firstWord) ? firstWord as any : 'generate'
             const classification = { intent }
 
             // Chat handler
             if (classification.intent === "chat") {
               const chatResult = await streamText({
-                model: google("gemini-2.0-flash"),
+                model: groq('llama-3.3-70b-versatile'),
                 messages: [
                   { role: "system", content: VUNO_CHAT_PROMPT },
                   ...modelMessages
@@ -635,34 +638,29 @@ export async function POST(request: NextRequest) {
             emit(writer, "generation", { status: "analyzing", page: [] }, { id: "gen-card" })
             genCardEmitted = true
 
+            // Note: llama-3.3-70b-versatile is text-only — strip image parts
             const analysisOptions: any = {
-              model: google("gemini-2.0-flash"),
+              model: groq('llama-3.3-70b-versatile'),
               maxTokens: 1500,
               messages: [
                 { role: "system", content: WEB_ANALYSIS_PROMPT },
                 {
                   role: "user",
-                  content: [
-                    ...imageParts,
-                    {
-                      type: "text",
-                      text: `${imageParts.length > 0
-                        ? `Reference image attached — extract EVERY detail: colors, layout, components, spacing. Match it precisely.\n\n`
-                        : ''}
-    ${selectedPage && isRegen
-                          ? `EDITING THIS PAGE:\n- Name: ${selectedPage.name}\n- Current Styles:\n${selectedPage.rootStyles}\n- Current HTML:\n${selectedPage.htmlContent}\nBe surgical apply only requested changes.\n\n`
-                          : selectedPage && !isRegen
-                            ? `STYLE REFERENCE (match this brand DNA):
-                              - Name: ${selectedPage.name}
-                              - Brand Colors & Fonts: See Styles below.
-                              - Logo/Header Pattern: ${selectedPage.htmlContent.substring(0, 1500)}
-                              - Styles:${selectedPage.rootStyles}\n\n` : ''}
-        ${hasExistingPages && !isRegen
-                          ? `EXISTING PAGES (do NOT recreate):\n${existingPages!.map((p: any) => `- ${p.name}\n${p.rootStyles}`).join('\n')}\n\n`
-                          : ''}
-        USER REQUEST: "${latestUserMessage}"OUTPUT RAW JSON ONLY.`.trim()
-                    }
-                  ]
+                  content: `${imageParts.length > 0
+                    ? `[User attached an image as reference — imagine a visually rich, modern design matching their request]\n\n`
+                    : ''}
+${selectedPage && isRegen
+                    ? `EDITING THIS PAGE:\n- Name: ${selectedPage.name}\n- Current Styles:\n${selectedPage.rootStyles}\n- Current HTML:\n${selectedPage.htmlContent}\nBe surgical apply only requested changes.\n\n`
+                    : selectedPage && !isRegen
+                      ? `STYLE REFERENCE (match this brand DNA):
+                        - Name: ${selectedPage.name}
+                        - Brand Colors & Fonts: See Styles below.
+                        - Logo/Header Pattern: ${selectedPage.htmlContent.substring(0, 1500)}
+                        - Styles:${selectedPage.rootStyles}\n\n` : ''}
+${hasExistingPages && !isRegen
+                    ? `EXISTING PAGES (do NOT recreate):\n${existingPages!.map((p: any) => `- ${p.name}\n${p.rootStyles}`).join('\n')}\n\n`
+                    : ''}
+USER REQUEST: "${latestUserMessage}" OUTPUT RAW JSON ONLY.`.trim()
                 }
               ]
             };
@@ -674,6 +672,10 @@ export async function POST(request: NextRequest) {
               if (error?.message?.includes('quota') || error?.message?.includes('429')) {
                 console.log('Rate limit hit, waiting 10s...');
                 await new Promise(resolve => setTimeout(resolve, 10000));
+                analysisResult = await generateText(analysisOptions);
+              } else if (error?.message?.includes('model output must contain') || error?.message?.includes('empty')) {
+                console.log('Groq empty output on analysis, retrying...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 analysisResult = await generateText(analysisOptions);
               } else {
                 throw error;

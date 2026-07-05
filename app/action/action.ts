@@ -2,12 +2,12 @@
 
 import { getAuthServer } from "@/lib/supabase-server"
 import { UIMessage, generateText } from "ai"
-import { google } from "@/lib/ai-client"
+import { groq } from "@/lib/ai-client"
 
 export const generateProjectTitle = async (message: string) => {
   try {
     const result = await generateText({
-      model: google("gemini-2.0-flash"),
+      model: groq('llama-3.3-70b-versatile'),
       messages: [
         {
           role: "system",
