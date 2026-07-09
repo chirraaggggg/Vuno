@@ -8,16 +8,13 @@ export const generateProjectTitle = async (message: string) => {
   try {
     const result = await generateText({
       model: google('gemini-2.0-flash'),
-      messages: [
-        {
-          role: "system",
-          content: `
+      system: `
     You are an AI assistant that generates very short project names based on the user's prompt.
     - Keep it under 5 words.
     - Capitalize words appropriately.
     - Do not include special characters.
     - Return ONLY the name, nothing else.`,
-        },
+      messages: [
         {
           role: "user",
           content: message

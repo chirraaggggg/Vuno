@@ -114,11 +114,8 @@ async function runGenerationWorker({
     const generateOptions: any = {
       model: google('gemini-2.0-flash'),
       maxTokens: 8000,
+      system: WEB_GENERATION_PROMPT,
       messages: [
-        {
-          role: "system",
-          content: WEB_GENERATION_PROMPT,
-        },
         {
           role: 'user',
           content: `
@@ -232,12 +229,9 @@ ${page.rootStyles}
 
   const summaryResult = await streamText({
     model: google('gemini-2.0-flash'),
+    system: `You are Vuno, an AI web design agent. You just finished building pages.
+Write 1-2 sentences in first person. Natural, confident. No questions. No "let me know".`,
     messages: [
-      {
-        role: "system",
-        content: `You are Vuno, an AI web design agent. You just finished building pages.
-Write 1-2 sentences in first person. Natural, confident. No questions. No "let me know".`
-      },
       {
         role: 'user',
         content: `Designed: ${pages.map((p: any) => p.name).join(', ')} for: "${latestUserMessage}". Summarize briefly.`
@@ -327,11 +321,8 @@ async function runRegenerateWorker({
   const generateOptions: any = {
     model: google('gemini-2.0-flash'),
     maxTokens: 8000,
+    system: WEB_GENERATION_PROMPT,
     messages: [
-      {
-        role: "system",
-        content: WEB_GENERATION_PROMPT,
-      },
       {
         role: "user",
         content: `
@@ -401,12 +392,9 @@ async function runRegenerateWorker({
 
   const summaryResult = await streamText({
     model: google('gemini-2.0-flash'),
+    system: `You are Vuno, an AI web design agent. You just finished building pages.
+Write 1-2 sentences in first person. Natural, confident. No questions. No "let me know".`,
     messages: [
-      {
-        role: "system",
-        content: `You are Vuno, an AI web design agent. You just finished building pages.
-Write 1-2 sentences in first person. Natural, confident. No questions. No "let me know".`
-      },
       {
         role: 'user',
         content: `Updated: ${updatedPage.name} for: "${latestUserMessage}". Summarize briefly.`
@@ -564,8 +552,8 @@ export async function POST(request: NextRequest) {
             try {
               result = await generateText({
                 model: google('gemini-2.0-flash'),
+                system: VUNO_INTENT_PROMPT,
                 messages: [
-                  { role: "system", content: VUNO_INTENT_PROMPT },
                   { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
                 ]
               });
@@ -575,8 +563,8 @@ export async function POST(request: NextRequest) {
                 await new Promise(resolve => setTimeout(resolve, 10000));
                 result = await generateText({
                   model: google('gemini-2.0-flash'),
+                  system: VUNO_INTENT_PROMPT,
                   messages: [
-                    { role: "system", content: VUNO_INTENT_PROMPT },
                     { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
                   ]
                 });
@@ -598,10 +586,8 @@ export async function POST(request: NextRequest) {
             if (classification.intent === "chat") {
               const chatResult = await streamText({
                 model: google('gemini-2.0-flash'),
-                messages: [
-                  { role: "system", content: VUNO_CHAT_PROMPT },
-                  ...modelMessages
-                ]
+                system: VUNO_CHAT_PROMPT,
+                messages: modelMessages
               })
 
               const chatId = generateId();
@@ -641,8 +627,8 @@ export async function POST(request: NextRequest) {
             const analysisOptions: any = {
               model: google('gemini-2.0-flash'),
               maxTokens: 1000,
+              system: WEB_ANALYSIS_PROMPT,
               messages: [
-                { role: "system", content: WEB_ANALYSIS_PROMPT },
                 {
                   role: "user",
                   content: `${imageParts.length > 0
