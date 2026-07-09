@@ -40,6 +40,7 @@ const ChatInterface = ({
   const [hasStarted, setHasStarted] = useState(isProjectPage);
   const [projectTitle, setProjectTitle] = useState<string | null>(null)
   const [pages, setPages] = useState<PageType[]>([]);
+  const [rateLimitError, setRateLimitError] = useState(false);
 
   const { data: projectData, isLoading: isProjectLoading } = useQuery({
     queryKey: ["project", slugId],
@@ -148,7 +149,11 @@ const ChatInterface = ({
     },
     onError: (error) => {
       console.log(error)
-      toast.error("Failed to generate response")
+      if (error?.message?.includes('RATE_LIMIT')) {
+        setRateLimitError(true)
+      } else {
+        toast.error("Failed to generate response")
+      }
     }
   })
 
@@ -198,6 +203,8 @@ const ChatInterface = ({
       toast.error("Please enter a message")
       return
     }
+
+    setRateLimitError(false)
 
     if (!isProjectPage && !hasStarted) {
       window.history.pushState(null, "", `/project/${slugId}`);
@@ -295,6 +302,15 @@ const ChatInterface = ({
           selectedPage={selectedPage}
           status={status}
           error={error}
+          rateLimitError={rateLimitError}
+          onRetry={() => {
+            setRateLimitError(false);
+            const lastUserMsg = messages.findLast(m => m.role === 'user');
+            if (lastUserMsg) {
+              const text = (lastUserMsg.parts?.find((p: any) => p.type === 'text') as any)?.text ?? '';
+              if (text) onSubmit({ text, files: [] });
+            }
+          }}
           onStop={stop}
           onSubmit={onSubmit}
         />

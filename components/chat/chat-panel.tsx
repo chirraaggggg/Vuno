@@ -8,7 +8,7 @@ import { Message, MessageContent, MessageResponse } from '../ai-elements/message
 import { Attachment, AttachmentPreview, Attachments } from '../ai-elements/attachments';
 import { Loader } from '../ui/loader';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertCircle, AlertCircleIcon, CheckCircle2, CheckIcon, Circle } from 'lucide-react';
+import { AlertCircle, AlertCircleIcon, CheckCircle2, CheckIcon, Circle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from '../ui/spinner';
 import { PageType } from '@/types/project';
@@ -22,6 +22,8 @@ type PropsType = {
   messages: UIMessage[];
   error?: Error;
   onStop: () => void;
+  onRetry?: () => void;
+  rateLimitError?: boolean;
   onSubmit: (message: PromptInputMessage, options?: any) => void;
   status: ChatStatus;
   selectedPage?: PageType
@@ -37,6 +39,8 @@ const ChatPanel = ({
   onSubmit,
   status,
   error,
+  rateLimitError,
+  onRetry,
   isProjectLoading,
   selectedPage
 }: PropsType) => {
@@ -118,7 +122,15 @@ const ChatPanel = ({
             </div>
           ) : null}
 
-          {status === "error" && error && (
+          {rateLimitError && (
+            <ErrorAlert
+              title="Free tier limit reached"
+              message="Please wait a moment and try again."
+              onRetry={onRetry}
+            />
+          )}
+
+          {status === "error" && error && !rateLimitError && (
             <ErrorAlert
               title="Chat Error"
               message={"Something went wrong"}
@@ -145,9 +157,10 @@ const ChatPanel = ({
 }
 
 
-const ErrorAlert = ({ title, message }: {
+const ErrorAlert = ({ title, message, onRetry }: {
   title: string;
   message: string;
+  onRetry?: () => void;
 }) => {
   return (
     <>
@@ -156,11 +169,20 @@ const ErrorAlert = ({ title, message }: {
         className="w-full"
       >
         <AlertCircleIcon className="h-4 w-4" />
-        <div>
+        <div className="flex-1">
           <AlertTitle>{title}</AlertTitle>
           <AlertDescription>
             {message}
           </AlertDescription>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-destructive-foreground bg-destructive/20 hover:bg-destructive/30 px-2.5 py-1 rounded-md transition-colors"
+            >
+              <RefreshCw className="size-3" />
+              Retry
+            </button>
+          )}
         </div>
       </Alert>
     </>

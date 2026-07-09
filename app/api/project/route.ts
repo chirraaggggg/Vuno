@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { convertModelMessages, generateProjectTitle } from "@/app/action/action";
 import { getAuthServer } from "@/lib/supabase-server";
 import { createUIMessageStream, createUIMessageStreamResponse, generateId, UIMessage, generateText, streamText } from "ai";
-import { groq } from "@/lib/ai-client";
+import { google } from "@/lib/ai-client";
 import { VUNO_CHAT_PROMPT, VUNO_INTENT_PROMPT, WEB_ANALYSIS_PROMPT, WEB_GENERATION_PROMPT } from "@/lib/prompt";
 import { createClient } from "@supabase/supabase-js";
 
@@ -112,7 +112,7 @@ async function runGenerationWorker({
       : "No previous pages";
 
     const generateOptions: any = {
-      model: groq('llama-3.3-70b-versatile'),
+      model: google('gemini-2.0-flash'),
       maxTokens: 1500,
       messages: [
         {
@@ -231,7 +231,7 @@ ${page.rootStyles}
   }, { id: "gen-card" })
 
   const summaryResult = await streamText({
-    model: groq('llama-3.3-70b-versatile'),
+    model: google('gemini-2.0-flash'),
     messages: [
       {
         role: "system",
@@ -325,7 +325,7 @@ async function runRegenerateWorker({
   }, { id: "gen-card" })
 
   const generateOptions: any = {
-    model: groq('llama-3.3-70b-versatile'),
+    model: google('gemini-2.0-flash'),
     maxTokens: 1500,
     messages: [
       {
@@ -400,7 +400,7 @@ async function runRegenerateWorker({
   }, { id: "gen-card" })
 
   const summaryResult = await streamText({
-    model: groq('llama-3.3-70b-versatile'),
+    model: google('gemini-2.0-flash'),
     messages: [
       {
         role: "system",
@@ -563,7 +563,7 @@ export async function POST(request: NextRequest) {
             let result;
             try {
               result = await generateText({
-                model: groq('llama-3.3-70b-versatile'),
+                model: google('gemini-2.0-flash'),
                 messages: [
                   { role: "system", content: VUNO_INTENT_PROMPT },
                   { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
@@ -574,7 +574,7 @@ export async function POST(request: NextRequest) {
                 console.log('Rate limit hit, waiting 10s...');
                 await new Promise(resolve => setTimeout(resolve, 10000));
                 result = await generateText({
-                  model: groq('llama-3.3-70b-versatile'),
+                  model: google('gemini-2.0-flash'),
                   messages: [
                     { role: "system", content: VUNO_INTENT_PROMPT },
                     { role: "user", content: `${latestUserMessage}\nCLASSIFY THE INTENT NOW. ONE WORD ONLY` }
@@ -597,7 +597,7 @@ export async function POST(request: NextRequest) {
             // Chat handler
             if (classification.intent === "chat") {
               const chatResult = await streamText({
-                model: groq('llama-3.3-70b-versatile'),
+                model: google('gemini-2.0-flash'),
                 messages: [
                   { role: "system", content: VUNO_CHAT_PROMPT },
                   ...modelMessages
@@ -638,9 +638,8 @@ export async function POST(request: NextRequest) {
             emit(writer, "generation", { status: "analyzing", page: [] }, { id: "gen-card" })
             genCardEmitted = true
 
-            // Note: llama-3.3-70b-versatile is text-only — strip image parts
             const analysisOptions: any = {
-              model: groq('llama-3.3-70b-versatile'),
+              model: google('gemini-2.0-flash'),
               maxTokens: 1500,
               messages: [
                 { role: "system", content: WEB_ANALYSIS_PROMPT },
@@ -670,17 +669,14 @@ USER REQUEST: "${latestUserMessage}" OUTPUT RAW JSON ONLY.`.trim()
               analysisResult = await generateText(analysisOptions);
             } catch (error: any) {
               if (error?.message?.includes('quota') || error?.message?.includes('429')) {
-                console.log('Rate limit hit, waiting 10s...');
-                await new Promise(resolve => setTimeout(resolve, 10000));
-                analysisResult = await generateText(analysisOptions);
-              } else if (error?.message?.includes('model output must contain') || error?.message?.includes('empty')) {
-                console.log('Groq empty output on analysis, retrying...');
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                analysisResult = await generateText(analysisOptions);
+                throw Object.assign(new Error('quota'), { isQuota: true });
               } else {
                 throw error;
               }
             }
+
+            // Space out requests to avoid hitting the 15 req/minute limit
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
             checkAbort();
 
@@ -713,13 +709,18 @@ USER REQUEST: "${latestUserMessage}" OUTPUT RAW JSON ONLY.`.trim()
               existingPages, latestUserMessage, checkAbort,
             });
           }
-        } catch (error) {
+        } catch (error: any) {
           console.log(error)
           if (error instanceof AbortError) {
             if (genCardEmitted) {
               emit(writer, "generation", { status: "canceled" }, { id: "gen-card" })
               writer.write({ type: "abort" })
             }
+            return
+          }
+          if (error?.isQuota || error?.message?.includes('quota') || error?.message?.includes('429')) {
+            emit(writer, 'generation', { status: 'error' }, { id: 'gen-card' });
+            writer.write({ type: "error", errorText: "RATE_LIMIT" })
             return
           }
           emit(writer, 'generation', { status: 'error' }, { id: 'gen-card' });

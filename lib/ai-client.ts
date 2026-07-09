@@ -1,5 +1,3 @@
-import { createGroq } from '@ai-sdk/groq'
+import { google } from '@ai-sdk/google'
 
-export const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY!,
-})
+export { google }
