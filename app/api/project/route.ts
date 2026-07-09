@@ -113,7 +113,7 @@ async function runGenerationWorker({
 
     const generateOptions: any = {
       model: google('gemini-2.0-flash'),
-      maxTokens: 1500,
+      maxTokens: 8000,
       messages: [
         {
           role: "system",
@@ -326,7 +326,7 @@ async function runRegenerateWorker({
 
   const generateOptions: any = {
     model: google('gemini-2.0-flash'),
-    maxTokens: 1500,
+    maxTokens: 8000,
     messages: [
       {
         role: "system",
@@ -640,7 +640,7 @@ export async function POST(request: NextRequest) {
 
             const analysisOptions: any = {
               model: google('gemini-2.0-flash'),
-              maxTokens: 1500,
+              maxTokens: 1000,
               messages: [
                 { role: "system", content: WEB_ANALYSIS_PROMPT },
                 {

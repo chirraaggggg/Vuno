@@ -176,7 +176,7 @@ Rules:
 - Start with { and end with }.
 - Output valid JSON only.
 
-IMPORTANT: Generate exactly 1 page only. Keep the response concise and under 300 words.
+Generate exactly 1 page only. Make it complete, beautiful and fully styled.
 `.trim();
 
 
@@ -424,6 +424,5 @@ COLOR PALETTES — pick the most fitting one based on the brand, then map to CSS
 - Never hardcode hex colors — CSS variables only.
 - Never add unnecessary wrapper divs.
 
-IMPORTANT: Keep the HTML concise — maximum 200 lines. Prioritize quality over quantity.
 `.trim();
 
