@@ -39,8 +39,11 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex justify-center">
-          <img src="/vuno-logo.png" alt="Vuno" className="h-12 w-auto mx-auto" />
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <img src="/vuno-logo.png" alt="Vuno" className="h-8 w-auto" />
+          <span style={{ fontFamily: 'var(--font-instrument-serif)' }} className="text-2xl text-gray-900">
+            vuno
+          </span>
         </div>
         <h1 className="mb-1 text-center text-2xl font-bold text-gray-900">Welcome back</h1>
         <p className="mb-8 text-center text-sm text-gray-400">Log in to your Vuno account</p>

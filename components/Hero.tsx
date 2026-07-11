@@ -45,11 +45,17 @@ export default function Hero() {
       <nav className="w-full bg-transparent">
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-8 py-5">
           <Link href="/" className="flex items-center">
-            <img
-              src="/vuno-logo.png"
-              alt="Vuno"
-              className="h-10 w-auto"
-            />
+            <div className="flex items-center gap-2">
+              <img 
+                src="/vuno-logo.png" 
+                alt="Vuno" 
+                className="h-8 w-auto"
+                style={{ minWidth: '32px' }}
+              />
+              <span style={{ fontFamily: 'var(--font-instrument-serif)' }} className="text-xl text-gray-900 tracking-tight">
+                vuno
+              </span>
+            </div>
           </Link>
 
           <div className="flex items-center gap-7">
