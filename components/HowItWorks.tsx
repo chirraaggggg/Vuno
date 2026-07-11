@@ -2,6 +2,13 @@
 
 import { motion } from "framer-motion";
 import { Download, MessageSquare, Wand2 } from "lucide-react";
+import { Instrument_Serif } from "next/font/google";
+
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
 
 const steps = [
   {
@@ -23,7 +30,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section className="bg-white px-6 py-24 md:px-12">
+    <section id="features" className="bg-white px-6 py-24 md:px-12">
       <div className="mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -34,7 +41,10 @@ export default function HowItWorks() {
           <div className="text-xs font-medium uppercase tracking-widest text-gray-400">
             HOW IT WORKS
           </div>
-          <h2 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
+          <h2
+            className={`${instrumentSerif.className} mt-3 text-[#0A0A0A]`}
+            style={{ fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 400 }}
+          >
             <span className="block leading-tight">Three steps.</span>
             <span className="block leading-tight">That is all.</span>
           </h2>
@@ -58,11 +68,17 @@ export default function HowItWorks() {
                 <div className="text-xs font-mono text-gray-300 mb-8">
                   0{index + 1}
                 </div>
-                <Icon className="h-10 w-10 text-gray-900 transition-all duration-200 group-hover:scale-110 group-hover:text-gray-600" />
-                <h3 className="mt-6 text-lg font-semibold text-gray-900">
+                <Icon className="h-8 w-8 text-gray-900 transition-all duration-200 group-hover:scale-110 group-hover:text-gray-600" />
+                <h3
+                  className="mt-6 text-lg text-gray-900"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                >
                   {step.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                <p
+                  className="mt-2 text-sm leading-relaxed text-gray-400"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
                   {step.body}
                 </p>
               </motion.div>

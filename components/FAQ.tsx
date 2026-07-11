@@ -3,6 +3,13 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { Instrument_Serif } from "next/font/google";
+
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
 
 const faqs = [
   {
@@ -28,9 +35,12 @@ export default function FAQ() {
 
   return (
     <section id="faq" className="bg-white px-6 py-24 md:px-12">
-      <div className="mx-auto max-w-150">
-        <span className="text-sm font-medium text-gray-500">FAQ</span>
-        <h2 className="mt-3 text-4xl font-bold tracking-tight text-gray-950 md:text-5xl">
+      <div className="mx-auto max-w-2xl">
+        <span className="text-sm font-medium text-gray-400 uppercase tracking-widest" style={{ fontFamily: 'Inter, sans-serif' }}>FAQ</span>
+        <h2
+          className={`${instrumentSerif.className} mt-3 text-[#0A0A0A]`}
+          style={{ fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 400 }}
+        >
           Questions answered.
         </h2>
 
@@ -49,12 +59,15 @@ export default function FAQ() {
                 onClick={() => setOpen(open === i ? null : i)}
                 className="flex w-full items-center justify-between text-left"
               >
-                <span className="pr-4 text-lg font-medium text-gray-950">
+                <span
+                  className="pr-4 text-lg text-gray-900"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                >
                   {faq.q}
                 </span>
                 <Plus
-                  className={`h-5 w-5 shrink-0 text-gray-500 transition-transform duration-200 ${
-                    open === i ? "rotate-180" : ""
+                  className={`h-5 w-5 shrink-0 text-gray-400 transition-transform duration-200 ${
+                    open === i ? "rotate-45" : ""
                   }`}
                 />
               </button>
@@ -64,8 +77,11 @@ export default function FAQ() {
                 }`}
               >
                 <div className="overflow-hidden">
-                  <p className="text-[15px] leading-relaxed text-gray-500">
-                  {faq.a}
+                  <p
+                    className="text-[15px] leading-relaxed text-gray-400"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {faq.a}
                   </p>
                 </div>
               </div>

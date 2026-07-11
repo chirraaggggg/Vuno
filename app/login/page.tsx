@@ -40,7 +40,7 @@ function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-white px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex justify-center">
-          <img src="/vuno-logo.png" alt="Vuno" className="h-8 w-auto" />
+          <img src="/vuno-logo.png" alt="Vuno" className="h-10 w-auto mx-auto" />
         </div>
         <h1 className="mb-1 text-center text-2xl font-bold text-gray-900">Welcome back</h1>
         <p className="mb-8 text-center text-sm text-gray-400">Log in to your Vuno account</p>
