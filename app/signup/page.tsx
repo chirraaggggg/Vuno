@@ -44,7 +44,7 @@ function SignupForm() {
     <div className="flex min-h-screen items-center justify-center bg-white px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex justify-center">
-          <img src="/vuno-logo.png" alt="Vuno" className="h-10 w-auto mx-auto" />
+          <img src="/vuno-logo.png" alt="Vuno" className="h-12 w-auto mx-auto" />
         </div>
         <h1 className="mb-1 text-center text-2xl font-bold text-gray-900">Create your account</h1>
         <p className="mb-8 text-center text-sm text-gray-400">Start designing websites with AI</p>

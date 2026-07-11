@@ -48,7 +48,7 @@ export default function Hero() {
             <img
               src="/vuno-logo.png"
               alt="Vuno"
-              className="h-9 w-auto"
+              className="h-10 w-auto"
             />
           </Link>
 
